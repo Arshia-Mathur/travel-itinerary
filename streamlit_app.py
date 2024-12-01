@@ -114,3 +114,72 @@ with st.form("uber_call"):
     submitted = st.form_submit_button("Book Transportation")
 
 # add back to top button
+
+
+# PDF reader (pdf reader to text) 
+import fitz # PyMuPDF
+from pdf2image import convert_from_path
+import pytesseract
+
+
+def read_pdf(file):
+    """Reads the uploaded PDF file and extracts its text."""
+    text = ""
+    try:
+        with fitz.open(stream=file.read(), filetype="pdf") as doc:
+            for page in doc:
+                text += page.get_text()
+        return text
+    except Exception as e:
+        return f"An error occurred while reading the uploaded file: {str(e)}"
+
+
+def extract_text_from_pdf(pdf_path):
+    """Extracts text from a PDF file."""
+    text = ""
+    try:
+        # Extract text using PyMuPDF
+        doc = fitz.open(pdf_path)
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            text += page.get_text()
+        doc.close()
+
+        # Fallback to OCR if no text is found
+        if not text.strip():
+            images = convert_from_path(pdf_path)
+            for img in images:
+                text += pytesseract.image_to_string(img)
+        return text
+
+    except Exception as e:
+        return f"An error occurred while processing the file: {str(e)}"
+
+
+# Streamlit File Uploader
+uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
+
+if uploaded_file is not None:
+    # Extract text from uploaded file
+    st.subheader("Processing Uploaded File...")
+    pdf_text = read_pdf(uploaded_file)
+    
+    # Display extracted text in Streamlit
+    st.subheader("Extracted Text")
+    st.text_area("PDF Text", pdf_text, height=300)
+
+# Local File Processing (for standalone use)
+pdf_path = "example.pdf"  # Replace with your local file path
+try:
+    extracted_text = extract_text_from_pdf(pdf_path)
+
+    # Save extracted text to a file
+    with open("output.txt", "w", encoding="utf-8") as f:
+        f.write(extracted_text)
+    
+    # Print completion message for local processing
+    print("Extraction complete. Text saved to output.txt")
+
+except Exception as e:
+    print(f"Error processing local file: {str(e)}")
+
